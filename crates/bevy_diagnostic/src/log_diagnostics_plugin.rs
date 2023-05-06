@@ -17,6 +17,7 @@ pub struct LogDiagnosticsPlugin {
 struct LogDiagnosticsState {
     timer: Timer,
     filter: Option<Vec<DiagnosticId>>,
+    width: usize,
 }
 
 impl Default for LogDiagnosticsPlugin {
@@ -34,6 +35,7 @@ impl Plugin for LogDiagnosticsPlugin {
         app.insert_resource(LogDiagnosticsState {
             timer: Timer::new(self.wait_duration, TimerMode::Repeating),
             filter: self.filter.clone(),
+            width: 0,
         });
 
         if self.debug {
@@ -52,7 +54,7 @@ impl LogDiagnosticsPlugin {
         }
     }
 
-    fn log_diagnostic(diagnostic: &Diagnostic) {
+    fn log_diagnostic(width: usize, diagnostic: &Diagnostic) {
         if let Some(value) = diagnostic.smoothed() {
             if diagnostic.get_max_history_length() > 1 {
                 if let Some(average) = diagnostic.average() {
@@ -65,7 +67,7 @@ impl LogDiagnosticsPlugin {
                         "{name:<name_width$}: {value:>11.6}{suffix:2} (avg {average:>.6}{suffix:})",
                         name = diagnostic.name,
                         suffix = diagnostic.suffix,
-                        name_width = crate::MAX_DIAGNOSTIC_NAME_WIDTH,
+                        name_width = width,
                     );
                     return;
                 }
@@ -75,7 +77,7 @@ impl LogDiagnosticsPlugin {
                 "{name:<name_width$}: {value:>.6}{suffix:}",
                 name = diagnostic.name,
                 suffix = diagnostic.suffix,
-                name_width = crate::MAX_DIAGNOSTIC_NAME_WIDTH,
+                name_width = width,
             );
         }
     }
@@ -86,20 +88,21 @@ impl LogDiagnosticsPlugin {
         diagnostics: Res<Diagnostics>,
     ) {
         if state.timer.tick(time.raw_delta()).finished() {
+            let width = diagnostics.iter().filter(|diagnostic| diagnostic.is_enabled).map(|diagnostic| diagnostic.name.len()).max().unwrap_or(0);
             if let Some(ref filter) = state.filter {
                 for diagnostic in filter.iter().flat_map(|id| {
                     diagnostics
                         .get(*id)
                         .filter(|diagnostic| diagnostic.is_enabled)
                 }) {
-                    Self::log_diagnostic(diagnostic);
+                    Self::log_diagnostic(width, diagnostic);
                 }
             } else {
                 for diagnostic in diagnostics
                     .iter()
                     .filter(|diagnostic| diagnostic.is_enabled)
                 {
-                    Self::log_diagnostic(diagnostic);
+                    Self::log_diagnostic(width, diagnostic);
                 }
             }
         }
