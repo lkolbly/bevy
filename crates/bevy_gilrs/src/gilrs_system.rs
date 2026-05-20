@@ -29,6 +29,12 @@ pub fn gilrs_event_startup_system(
                     name: gamepad.name().to_string(),
                     vendor_id: gamepad.vendor_id(),
                     product_id: gamepad.product_id(),
+                    buttons: Some(
+                        gamepad
+                            .buttons()
+                            .map(|(button, code)| convert_button(button, code))
+                            .collect(),
+                    ),
                 },
             });
         }
@@ -63,6 +69,11 @@ pub fn gilrs_event_system(
                             name: pad.name().to_string(),
                             vendor_id: pad.vendor_id(),
                             product_id: pad.product_id(),
+                            buttons: Some(
+                                pad.buttons()
+                                    .map(|(button, code)| convert_button(button, code))
+                                    .collect(),
+                            ),
                         },
                     );
                     events.write(event.clone().into());

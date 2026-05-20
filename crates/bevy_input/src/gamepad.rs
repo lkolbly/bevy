@@ -4,6 +4,7 @@ use core::{ops::RangeInclusive, time::Duration};
 
 use crate::{Axis, ButtonInput, ButtonState};
 use alloc::string::String;
+use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::{
@@ -384,6 +385,8 @@ pub struct Gamepad {
 
     /// [`Axis`] of [`GamepadButton`] representing their analog state.
     pub(crate) analog: Axis<GamepadInput>,
+
+    pub(crate) buttons: Option<Vec<GamepadButton>>,
 }
 
 impl Gamepad {
@@ -397,6 +400,10 @@ impl Gamepad {
     /// [vendor]: Self::vendor_id
     pub fn product_id(&self) -> Option<u16> {
         self.product_id
+    }
+
+    pub fn buttons(&self) -> Option<Vec<GamepadButton>> {
+        self.buttons.clone()
     }
 
     /// Returns the analog data of the provided [`GamepadAxis`] or [`GamepadButton`].
@@ -554,6 +561,7 @@ impl Default for Gamepad {
         Self {
             vendor_id: None,
             product_id: None,
+            buttons: None,
             digital: Default::default(),
             analog,
         }
@@ -1518,6 +1526,7 @@ pub fn gamepad_connection_system(
                 name,
                 vendor_id,
                 product_id,
+                buttons,
             } => {
                 let Ok(mut gamepad) = commands.get_entity(id) else {
                     warn!("Gamepad {id} removed before handling connection event.");
@@ -1528,6 +1537,7 @@ pub fn gamepad_connection_system(
                     Gamepad {
                         vendor_id: *vendor_id,
                         product_id: *product_id,
+                        buttons: buttons.clone(),
                         ..Default::default()
                     },
                 ));
@@ -1578,6 +1588,8 @@ pub enum GamepadConnection {
 
         /// The USB product ID as assigned by the vendor, if available.
         product_id: Option<u16>,
+
+        buttons: Option<Vec<GamepadButton>>,
     },
     /// The gamepad is disconnected.
     Disconnected,
@@ -2233,6 +2245,7 @@ mod tests {
                         name: "Test gamepad".to_string(),
                         vendor_id: None,
                         product_id: None,
+                        buttons: None,
                     },
                 ));
             gamepad
